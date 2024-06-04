@@ -14,7 +14,8 @@ interface IERC20 {
     function balanceOf(address account) external view returns (uint256);
 }
 
-contract FixedForFixedCurrencySwap {
+contract FFCSEthErc20 {
+    // Fixed-for-Fixed Currency Swap (ETH-ERC20)
     address public owner; // Swap dealer/Market Maker
     address public partyA; // ETH
     address public partyB; // ERC-20 token
@@ -72,8 +73,7 @@ contract FixedForFixedCurrencySwap {
         erc20MaintenanceMargin = _erc20MaintenanceMargin
         marketMakerFeeBps = _marketMakerFeeBps;
         swapStarted = false;
-        ethInitMarginDeposited = false;
-        erc20InitMarginDeposited = false;
+
     }
 
     function startSwap() external {
