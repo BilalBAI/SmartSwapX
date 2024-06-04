@@ -27,10 +27,10 @@ contract FFCSErc20Erc20 {
     uint256 public tokenARateBps;
     uint256 public tokenBRateBps;
 
-    uint256 public tokenAInitMargin;
-    uint256 public tokenBInitMargin;
-    uint256 public tokenAMaintenanceMargin;
-    uint256 public tokenBMaintenanceMargin;
+    uint256 public tokenAInitMargin; // recommand: 2 * Notional * (SwapRate + feeRate)
+    uint256 public tokenBInitMargin; // recommand: 2 * Notional * (SwapRate + feeRate)
+    uint256 public tokenAMaintenanceMargin; // recommand: 4 * Notional * (SwapRate + feeRate)
+    uint256 public tokenBMaintenanceMargin; // recommand: 4 * Notional * (SwapRate + feeRate)
     uint256 public marketMakerFeeBps; // Market Maker Fee in base points of notionals
 
     uint256 public paymentInterval;
@@ -47,8 +47,8 @@ contract FFCSErc20Erc20 {
     function setSwap(
         address _partyA,
         address _partyB,
-        address tokenA,
-        address tokenB,
+        address _tokenA,
+        address _tokenB,
         uint256 _tokenANotional,
         uint256 _tokenBNotional,
         uint256 _tokenARateBps,
@@ -65,6 +65,12 @@ contract FFCSErc20Erc20 {
     ) external {
         require(msg.sender == owner, "Only owner can call this function");
         require(swapStarted = false, "Cannot reset swap, the swap is started");
+        if tokenA.balanceOf(address(this)) > 0 {
+            tokenA.transfer(partyA, tokenA.balanceOf(address(this)))
+        }
+        if tokenB.balanceOf(address(this)) > 0 {
+            tokenB.transfer(partyB, tokenB.balanceOf(address(this)))
+        }
         partyA = _partyA;
         partyB = _partyB;
         tokenA = IERC20(_tokenA);
