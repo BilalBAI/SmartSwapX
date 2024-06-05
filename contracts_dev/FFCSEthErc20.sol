@@ -52,9 +52,9 @@ contract FFCSEthErc20 {
         address _erc20Token,
         uint256 _ethInitMargin,
         uint256 _erc20InitMargin,
-        uint256 _ethMaintenanceMargin
-        uint256 _erc20MaintenanceMargin
-        uint256 _marketMakerFeeBps,
+        uint256 _ethMaintenanceMargin,
+        uint256 _erc20MaintenanceMargin,
+        uint256 _marketMakerFeeBps
     ) external {
         require(msg.sender == owner, "Only owner can call this function");
         require(swapStarted = false, "Cannot reset swap, the swap is started");
@@ -69,8 +69,8 @@ contract FFCSEthErc20 {
         erc20Token = IERC20(_erc20Token);
         ethInitMargin = _ethInitMargin;
         erc20InitMargin = _erc20InitMargin;
-        ethMaintenanceMargin = _ethMaintenanceMargin
-        erc20MaintenanceMargin = _erc20MaintenanceMargin
+        ethMaintenanceMargin = _ethMaintenanceMargin;
+        erc20MaintenanceMargin = _erc20MaintenanceMargin;
         marketMakerFeeBps = _marketMakerFeeBps;
         swapStarted = false;
 
