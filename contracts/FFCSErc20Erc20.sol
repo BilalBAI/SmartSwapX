@@ -53,23 +53,21 @@ contract FFCSErc20Erc20 {
         uint256 _tokenBNotional,
         uint256 _tokenARateBps,
         uint256 _tokenBRateBps,
-
         uint256 _tokenAInitMargin,
         uint256 _tokenBInitMargin,
-        uint256 _tokenAMaintenanceMargin
-        uint256 _tokenBMaintenanceMargin
+        uint256 _tokenAMaintenanceMargin,
+        uint256 _tokenBMaintenanceMargin,
         uint256 _marketMakerFeeBps,
-
         uint256 _paymentInterval,
-        uint256 _totalDuration,
+        uint256 _totalDuration
     ) external {
         require(msg.sender == owner, "Only owner can call this function");
         require(swapStarted = false, "Cannot reset swap, the swap is started");
-        if tokenA.balanceOf(address(this)) > 0 {
-            tokenA.transfer(partyA, tokenA.balanceOf(address(this)))
+        if (tokenA.balanceOf(address(this)) > 0) {
+            tokenA.transfer(partyA, tokenA.balanceOf(address(this)));
         }
-        if tokenB.balanceOf(address(this)) > 0 {
-            tokenB.transfer(partyB, tokenB.balanceOf(address(this)))
+        if (tokenB.balanceOf(address(this)) > 0) {
+            tokenB.transfer(partyB, tokenB.balanceOf(address(this)));
         }
         partyA = _partyA;
         partyB = _partyB;
@@ -82,8 +80,8 @@ contract FFCSErc20Erc20 {
 
         tokenAInitMargin = _tokenAInitMargin;
         tokenBInitMargin = _tokenBInitMargin;
-        tokenAMaintenanceMargin = _tokenAMaintenanceMargin
-        tokenBMaintenanceMargin = _tokenBMaintenanceMargin
+        tokenAMaintenanceMargin = _tokenAMaintenanceMargin;
+        tokenBMaintenanceMargin = _tokenBMaintenanceMargin;
         marketMakerFeeBps = _marketMakerFeeBps;
 
         paymentInterval = _paymentInterval;
@@ -94,7 +92,8 @@ contract FFCSErc20Erc20 {
 
     function startSwap() external {
         require(
-            tokenA.balanceOf(address(this)) > tokenAInitMargin, && tokenB.balanceOf(address(this)) > tokenBInitMargin,
+            tokenA.balanceOf(address(this)) > tokenAInitMargin &&
+                tokenB.balanceOf(address(this)) > tokenBInitMargin,
             "Initial margin is not sufficient"
         );
         swapStarted = true;
@@ -103,7 +102,10 @@ contract FFCSErc20Erc20 {
     }
 
     function depositTokenAMargin(uint256 depositeValue) external payable {
-        require(msg.sender == partyA, "Only Party A can deposit Token A margin");
+        require(
+            msg.sender == partyA,
+            "Only Party A can deposit Token A margin"
+        );
         require(
             tokenA.transferFrom(msg.sender, address(this), depositeValue),
             "erc20 margin transfer failed"
@@ -111,7 +113,10 @@ contract FFCSErc20Erc20 {
     }
 
     function depositTokenBMargin(uint256 depositeValue) external {
-        require(msg.sender == partyB, "Only Party B can deposit Token B margin");
+        require(
+            msg.sender == partyB,
+            "Only Party B can deposit Token B margin"
+        );
         require(
             tokenB.transferFrom(msg.sender, address(this), depositeValue),
             "erc20 margin transfer failed"
@@ -129,9 +134,9 @@ contract FFCSErc20Erc20 {
             "Swap duration has ended"
         );
 
-        // Collect market maker fees from both parties 
-        tokenA.transfer(owner, tokenANotional * marketMakerFeeBps / 10000);
-        tokenB.transfer(owner, tokenBNotional * marketMakerFeeBps / 10000);
+        // Collect market maker fees from both parties
+        tokenA.transfer(owner, (tokenANotional * marketMakerFeeBps) / 10000);
+        tokenB.transfer(owner, (tokenBNotional * marketMakerFeeBps) / 10000);
 
         // Make payment for parties
         uint256 tokenAPayment = (tokenANotional * tokenARateBps) / 10000;
@@ -155,10 +160,10 @@ contract FFCSErc20Erc20 {
             block.timestamp >= startTime + totalDuration,
             "Swap duration has not ended"
         );
-        
-        // Collect market maker fees from both parties 
-        tokenA.transfer(owner, tokenANotional * marketMakerFeeBps / 10000)
-        tokenB.transfer(owner, tokenBNotional * marketMakerFeeBps / 10000)
+
+        // Collect market maker fees from both parties
+        tokenA.transfer(owner, (tokenANotional * marketMakerFeeBps) / 10000);
+        tokenB.transfer(owner, (tokenBNotional * marketMakerFeeBps) / 10000);
         // Refund remaining margins
         require(
             tokenA.transfer(partyA, tokenA.balanceOf(address(this))),
@@ -173,20 +178,26 @@ contract FFCSErc20Erc20 {
     }
 
     function partyALiqudation() external {
-        require(tokenA.balanceOf(address(this)) < tokenAMaintenanceMargin, "Hasn't reached the liqudation level");
-        tokenA.transfer(owner, tokenA.balanceOf(address(this))/2);
-        tokenA.transfer(partyB, tokenA.balanceOf(address(this))/2);
+        require(
+            tokenA.balanceOf(address(this)) < tokenAMaintenanceMargin,
+            "Hasn't reached the liqudation level"
+        );
+        tokenA.transfer(owner, tokenA.balanceOf(address(this)) / 2);
+        tokenA.transfer(partyB, tokenA.balanceOf(address(this)) / 2);
         tokenB.transfer(partyB, tokenB.balanceOf(address(this)));
 
         swapStarted = false;
     }
 
     function partyBLiqudation() external {
-        require(tokenB.balanceOf(address(this)) < tokenBMaintenanceMargin, "Hasn't reached the liqudation level");
-        tokenB.transfer(owner, tokenB.balanceOf(address(this))/2);
-        tokenB.transfer(partyA, tokenB.balanceOf(address(this))/2);
+        require(
+            tokenB.balanceOf(address(this)) < tokenBMaintenanceMargin,
+            "Hasn't reached the liqudation level"
+        );
+        tokenB.transfer(owner, tokenB.balanceOf(address(this)) / 2);
+        tokenB.transfer(partyA, tokenB.balanceOf(address(this)) / 2);
         tokenA.transfer(partyA, tokenA.balanceOf(address(this)));
-    
+
         swapStarted = false;
     }
 }
