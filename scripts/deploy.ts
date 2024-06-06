@@ -1,11 +1,11 @@
 import { ethers } from 'hardhat';
 
 async function main() {
-    const FFCSErc20Erc20 = await ethers.deployContract('FFCSErc20Erc20');
+    const FFCurrencySwap = await ethers.deployContract('FFCurrencySwap');
 
-    await FFCSErc20Erc20.waitForDeployment();
+    await FFCurrencySwap.waitForDeployment();
 
-    console.log('FFCSErc20Erc20 Contract Deployed at ' + FFCSErc20Erc20.target);
+    console.log('FFCurrencySwap Contract Deployed at ' + FFCurrencySwap.target);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

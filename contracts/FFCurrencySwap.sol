@@ -14,7 +14,7 @@ interface IERC20 {
     function balanceOf(address account) external view returns (uint256);
 }
 
-contract FFCSErc20Erc20 {
+contract FFCurrencySwap {
     // Fixed-for-Fixed Currency Swap (ERC20-ERC20)
 
     address public owner; // Swap dealer/Market Maker
