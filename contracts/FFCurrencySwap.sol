@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -28,6 +28,13 @@ contract FFCurrencySwap is Ownable {
     bool public swapStarted;
 
     event SwapSet(address indexed partyA, address indexed partyB);
+    event SwapMarginAndFeeSet(
+        uint256 tokenAInitMargin,
+        uint256 tokenBInitMargin,
+        uint256 tokenAMaintenanceMargin,
+        uint256 tokenBMaintenanceMargin,
+        uint256 marketMakerFeeBps
+    );
     event SwapStarted(uint256 startTime);
     event MarginDeposited(address indexed party, uint256 amount);
     event MarginWithdrawed(address indexed party);
@@ -40,8 +47,8 @@ contract FFCurrencySwap is Ownable {
     event PartyALiquidated(uint256 amountA, uint256 amountB);
     event PartyBLiquidated(uint256 amountA, uint256 amountB);
 
-    constructor() {
-        transferOwnership(msg.sender); // Swap dealer/Market Maker
+    constructor() Ownable(msg.sender) {
+        // Swap dealer/Market Maker
     }
 
     function setSwap(
@@ -51,11 +58,6 @@ contract FFCurrencySwap is Ownable {
         address _tokenB,
         uint256 _tokenANotional,
         uint256 _tokenBNotional,
-        uint256 _tokenAInitMargin,
-        uint256 _tokenBInitMargin,
-        uint256 _tokenAMaintenanceMargin,
-        uint256 _tokenBMaintenanceMargin,
-        uint256 _marketMakerFeeBps,
         uint256 _paymentInterval,
         uint256 _totalDuration
     ) external onlyOwner {
@@ -92,19 +94,34 @@ contract FFCurrencySwap is Ownable {
         tokenB = IERC20(_tokenB);
         tokenANotional = _tokenANotional;
         tokenBNotional = _tokenBNotional;
-
-        tokenAInitMargin = _tokenAInitMargin;
-        tokenBInitMargin = _tokenBInitMargin;
-        tokenAMaintenanceMargin = _tokenAMaintenanceMargin;
-        tokenBMaintenanceMargin = _tokenBMaintenanceMargin;
-        marketMakerFeeBps = _marketMakerFeeBps;
-
         paymentInterval = _paymentInterval;
         totalDuration = _totalDuration;
 
         swapStarted = false;
 
         emit SwapSet(_partyA, _partyB);
+    }
+
+    function setMarginFee(
+        uint256 _tokenAInitMargin,
+        uint256 _tokenBInitMargin,
+        uint256 _tokenAMaintenanceMargin,
+        uint256 _tokenBMaintenanceMargin,
+        uint256 _marketMakerFeeBps
+    ) external onlyOwner {
+        tokenAInitMargin = _tokenAInitMargin;
+        tokenBInitMargin = _tokenBInitMargin;
+        tokenAMaintenanceMargin = _tokenAMaintenanceMargin;
+        tokenBMaintenanceMargin = _tokenBMaintenanceMargin;
+        marketMakerFeeBps = _marketMakerFeeBps;
+
+        emit SwapMarginAndFeeSet(
+            tokenAInitMargin,
+            tokenBInitMargin,
+            tokenAMaintenanceMargin,
+            tokenBMaintenanceMargin,
+            marketMakerFeeBps
+        );
     }
 
     function startSwap() external onlyOwner {
