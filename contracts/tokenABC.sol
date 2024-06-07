@@ -7,9 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 
 contract ABC is ERC20, Ownable, ERC20Permit {
-    constructor(
-        address initialOwner
-    ) ERC20("ABC", "ABC") Ownable(initialOwner) ERC20Permit("ABC") {
+    constructor() ERC20("ABC", "ABC") Ownable(msg.sender) ERC20Permit("ABC") {
         _mint(msg.sender, 1000000000 * 10 ** decimals());
     }
 
