@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 
 contract ABC is ERC20, Ownable, ERC20Permit {
     constructor() ERC20("ABC", "ABC") Ownable(msg.sender) ERC20Permit("ABC") {
-        _mint(msg.sender, 1000000000 * 10 ** decimals());
+        _mint(msg.sender, 1000000000 * 10 ** decimals()); //By default, ERC20 uses a value of 18 for decimals
     }
 
     function mint(address to, uint256 amount) public onlyOwner {
