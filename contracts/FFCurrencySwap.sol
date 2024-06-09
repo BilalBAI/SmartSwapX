@@ -203,8 +203,9 @@ contract FFCurrencySwap is Ownable {
         );
 
         // Make fee payments to market maker from both parties
-        tokenA.transfer(owner(), tokenANotional * (marketMakerFeeBps / 10000));
-        tokenB.transfer(owner(), tokenBNotional * (marketMakerFeeBps / 10000));
+        tokenA.transfer(owner(), (tokenANotional * marketMakerFeeBps) / 10000);
+        tokenB.transfer(owner(), (tokenBNotional * marketMakerFeeBps) / 10000);
+        // !!! Solidity doesn't handle floating numbers, notional * (1000 / 10000) = notional * 0 = 0
 
         // Make payments to parties
         require(
