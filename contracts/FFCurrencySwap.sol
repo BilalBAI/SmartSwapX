@@ -44,8 +44,8 @@ contract FFCurrencySwap is Ownable {
         uint256 lastPaymentTime
     );
     event SwapEnded();
-    event PartyALiquidated(uint256 amountA, uint256 amountB);
-    event PartyBLiquidated(uint256 amountA, uint256 amountB);
+    event PartyALiquidated(uint256 amount);
+    event PartyBLiquidated(uint256 amount);
 
     constructor() Ownable(msg.sender) {
         // Swap dealer/Market Maker
@@ -255,39 +255,40 @@ contract FFCurrencySwap is Ownable {
         emit SwapEnded();
     }
 
-    function partyALiquidation() external {
+    function Liquidation() external {
         require(
-            tokenA.balanceOf(address(this)) < tokenAMaintenanceMargin,
-            "Hasn't reached the liquidation level"
+            tokenA.balanceOf(address(this)) < tokenAMaintenanceMargin ||
+                tokenB.balanceOf(address(this)) < tokenBMaintenanceMargin,
+            "None of the parties has reached the liquidation level"
         );
 
         uint256 balanceA = tokenA.balanceOf(address(this));
         uint256 balanceB = tokenB.balanceOf(address(this));
 
-        tokenA.transfer(owner(), balanceA / 2);
-        tokenA.transfer(partyB, balanceA / 2);
-        tokenB.transfer(partyB, balanceB);
+        // Liquidate party A if below Maintenance Margin
+        if (balanceA < tokenAMaintenanceMargin) {
+            tokenA.transfer(owner(), balanceA / 2);
+            tokenA.transfer(partyB, balanceA / 2);
+            emit PartyALiquidated(balanceA);
+            balanceA = 0;
+        }
+
+        // Liquidate party B if below Maintenance Margin
+        if (balanceB < tokenBMaintenanceMargin) {
+            tokenB.transfer(owner(), balanceB / 2);
+            tokenB.transfer(partyA, balanceB / 2);
+            emit PartyBLiquidated(balanceB);
+            balanceB = 0;
+        }
+
+        // Refund the remaining
+        if (balanceA != 0) {
+            tokenA.transfer(partyA, balanceA);
+        }
+        if (balanceB != 0) {
+            tokenB.transfer(partyB, balanceB);
+        }
 
         swapStarted = false;
-
-        emit PartyALiquidated(balanceA / 2, balanceB);
-    }
-
-    function partyBLiquidation() external {
-        require(
-            tokenB.balanceOf(address(this)) < tokenBMaintenanceMargin,
-            "Hasn't reached the liquidation level"
-        );
-
-        uint256 balanceA = tokenA.balanceOf(address(this));
-        uint256 balanceB = tokenB.balanceOf(address(this));
-
-        tokenB.transfer(owner(), balanceB / 2);
-        tokenB.transfer(partyA, balanceB / 2);
-        tokenA.transfer(partyA, balanceA);
-
-        swapStarted = false;
-
-        emit PartyBLiquidated(balanceA, balanceB / 2);
     }
 }
