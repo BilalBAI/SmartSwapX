@@ -109,6 +109,7 @@ contract FFCurrencySwap is Ownable {
         uint256 _tokenBMaintenanceMargin,
         uint256 _marketMakerFeeBps
     ) external onlyOwner {
+        require(!swapStarted, "Cannot reset swap, the swap has started");
         tokenAInitMargin = _tokenAInitMargin;
         tokenBInitMargin = _tokenBInitMargin;
         tokenAMaintenanceMargin = _tokenAMaintenanceMargin;
