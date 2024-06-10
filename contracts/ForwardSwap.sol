@@ -4,9 +4,11 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract FFCurrencySwap is Ownable {
-    // Fixed-for-Fixed Currency Swap (ERC20-ERC20)
-
+contract ForwardSwap is Ownable {
+    /* 
+       A forward swap enables parties to exchange token flows 
+       according to a predetermined schedule in the future.
+    */
     address public partyA; // party that holds token A and want to receive token B
     address public partyB; //  party that holds token B and want to receive token A
     IERC20 public tokenA; // ERC-20 token address
