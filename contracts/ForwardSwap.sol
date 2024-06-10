@@ -28,6 +28,8 @@ contract ForwardSwap is Ownable {
     uint256 public lastPaymentTime;
     uint256 public startTime;
     bool public swapStarted;
+    bool public partyATerminationConsent;
+    bool public partyBTerminationConsent;
 
     event SwapSet(address indexed partyA, address indexed partyB);
     event SwapMarginAndFeeSet(
@@ -100,6 +102,8 @@ contract ForwardSwap is Ownable {
         totalDuration = _totalDuration;
 
         swapStarted = false;
+        partyATerminationConsent = false;
+        partyBTerminationConsent = false;
 
         emit SwapSet(_partyA, _partyB);
     }
@@ -293,5 +297,48 @@ contract ForwardSwap is Ownable {
         }
 
         swapStarted = false;
+    }
+
+    function terminateSwap() external {
+        // Allow Party A and Party B together to terminate the swap after swap started.
+        require(
+            msg.sender == partyA || msg.sender == partyB,
+            "Only parties involved can initiate termination"
+        );
+        require(swapStarted, "Swap has not started");
+
+        // Both parties must call this function to agree on termination
+        if (msg.sender == partyA) {
+            partyATerminationConsent = true;
+        } else if (msg.sender == partyB) {
+            partyBTerminationConsent = true;
+        }
+
+        if (partyATerminationConsent && partyBTerminationConsent) {
+            // Refund remaining margins
+            uint256 remainingA = tokenA.balanceOf(address(this));
+            uint256 remainingB = tokenB.balanceOf(address(this));
+
+            if (remainingA > 0) {
+                require(
+                    tokenA.transfer(partyA, remainingA),
+                    "ERC20 margin transfer failed for party A"
+                );
+            }
+            if (remainingB > 0) {
+                require(
+                    tokenB.transfer(partyB, remainingB),
+                    "ERC20 margin transfer failed for party B"
+                );
+            }
+
+            // Reset the termination consents
+            partyATerminationConsent = false;
+            partyBTerminationConsent = false;
+
+            swapStarted = false;
+
+            emit SwapEnded();
+        }
     }
 }
