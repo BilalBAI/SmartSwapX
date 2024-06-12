@@ -70,17 +70,8 @@ contract ForwardSwap is Ownable {
     ) external onlyOwner {
         require(!swapStarted, "Cannot reset swap, the swap has started");
 
-        // Transfer existing balances back to respective parties if they exist
-        if (
-            address(tokenA) != address(0) && tokenA.balanceOf(address(this)) > 0
-        ) {
-            tokenA.transfer(partyA, tokenA.balanceOf(address(this)));
-        }
-        if (
-            address(tokenB) != address(0) && tokenB.balanceOf(address(this)) > 0
-        ) {
-            tokenB.transfer(partyB, tokenB.balanceOf(address(this)));
-        }
+        // refund balances to parties if any, before reseting the swap
+        refundBalance();
 
         require(
             _partyA != address(0) && _partyB != address(0),
@@ -119,6 +110,9 @@ contract ForwardSwap is Ownable {
         uint256 _marketMakerFeeBps
     ) external onlyOwner {
         require(!swapStarted, "Cannot reset swap, the swap has started");
+        // refund balances to parties if any, before reseting the swap
+        refundBalance();
+
         tokenAInitMargin = _tokenAInitMargin;
         tokenBInitMargin = _tokenBInitMargin;
         tokenAMaintenanceMargin = _tokenAMaintenanceMargin;
@@ -258,21 +252,7 @@ contract ForwardSwap is Ownable {
         tokenB.transfer(owner(), (tokenBNotional * marketMakerFeeBps) / 10000);
 
         // Refund remaining margins
-        uint256 remainingA = tokenA.balanceOf(address(this));
-        uint256 remainingB = tokenB.balanceOf(address(this));
-
-        if (remainingA > 0) {
-            require(
-                tokenA.transfer(partyA, remainingA),
-                "ERC20 margin transfer failed for party A"
-            );
-        }
-        if (remainingB > 0) {
-            require(
-                tokenB.transfer(partyB, remainingB),
-                "ERC20 margin transfer failed for party B"
-            );
-        }
+        refundBalance();
 
         swapStarted = false;
 
@@ -306,12 +286,7 @@ contract ForwardSwap is Ownable {
         }
 
         // Refund the remaining
-        if (balanceA != 0) {
-            tokenA.transfer(partyA, balanceA);
-        }
-        if (balanceB != 0) {
-            tokenB.transfer(partyB, balanceB);
-        }
+        refundBalance();
 
         swapStarted = false;
     }
@@ -333,21 +308,7 @@ contract ForwardSwap is Ownable {
 
         if (partyATerminationConsent && partyBTerminationConsent) {
             // Refund remaining margins
-            uint256 remainingA = tokenA.balanceOf(address(this));
-            uint256 remainingB = tokenB.balanceOf(address(this));
-
-            if (remainingA > 0) {
-                require(
-                    tokenA.transfer(partyA, remainingA),
-                    "ERC20 margin transfer failed for party A"
-                );
-            }
-            if (remainingB > 0) {
-                require(
-                    tokenB.transfer(partyB, remainingB),
-                    "ERC20 margin transfer failed for party B"
-                );
-            }
+            refundBalance();
 
             // Reset the termination consents
             partyATerminationConsent = false;
@@ -356,6 +317,20 @@ contract ForwardSwap is Ownable {
             swapStarted = false;
 
             emit SwapEnded();
+        }
+    }
+
+    function refundBalance() internal {
+        // Transfer existing balances back to respective parties if they exist
+        if (
+            address(tokenA) != address(0) && tokenA.balanceOf(address(this)) > 0
+        ) {
+            tokenA.transfer(partyA, tokenA.balanceOf(address(this)));
+        }
+        if (
+            address(tokenB) != address(0) && tokenB.balanceOf(address(this)) > 0
+        ) {
+            tokenB.transfer(partyB, tokenB.balanceOf(address(this)));
         }
     }
 }
