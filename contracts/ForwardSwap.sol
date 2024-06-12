@@ -209,24 +209,38 @@ contract ForwardSwap is Ownable {
             "Swap duration has ended"
         );
 
-        // Make fee payments to market maker from both parties
-        tokenA.transfer(owner(), (tokenANotional * marketMakerFeeBps) / 10000);
-        tokenB.transfer(owner(), (tokenBNotional * marketMakerFeeBps) / 10000);
-        // !!! Solidity doesn't handle floating numbers, notional * (1000 / 10000) = notional * 0 = 0
+        // if MaintenanceMargin being breached, trigger liquidation. Else process payment.
+        if (
+            tokenA.balanceOf(address(this)) < tokenAMaintenanceMargin ||
+            tokenB.balanceOf(address(this)) < tokenBMaintenanceMargin
+        ) {
+            liquidateSwap();
+        } else {
+            // Make fee payments to market maker from both parties
+            tokenA.transfer(
+                owner(),
+                (tokenANotional * marketMakerFeeBps) / 10000
+            );
+            tokenB.transfer(
+                owner(),
+                (tokenBNotional * marketMakerFeeBps) / 10000
+            );
+            // !!! Solidity doesn't handle floating numbers, notional * (1000 / 10000) = notional * 0 = 0
 
-        // Make payments to parties
-        require(
-            tokenA.transfer(partyB, tokenANotional),
-            "TokenA payment transfer failed"
-        ); // transfer token A to party B
-        require(
-            tokenB.transfer(partyA, tokenBNotional),
-            "TokenB payment transfer failed"
-        ); // transfer token B to party A
+            // Make payments to parties
+            require(
+                tokenA.transfer(partyB, tokenANotional),
+                "TokenA payment transfer failed"
+            ); // transfer token A to party B
+            require(
+                tokenB.transfer(partyA, tokenBNotional),
+                "TokenB payment transfer failed"
+            ); // transfer token B to party A
 
-        lastPaymentTime = block.timestamp;
+            lastPaymentTime = block.timestamp;
 
-        emit PaymentMade(tokenANotional, tokenBNotional, lastPaymentTime);
+            emit PaymentMade(tokenANotional, tokenBNotional, lastPaymentTime);
+        }
     }
 
     function endSwap() external {
@@ -262,7 +276,7 @@ contract ForwardSwap is Ownable {
         emit SwapEnded();
     }
 
-    function Liquidation() external {
+    function liquidateSwap() internal {
         require(
             tokenA.balanceOf(address(this)) < tokenAMaintenanceMargin ||
                 tokenB.balanceOf(address(this)) < tokenBMaintenanceMargin,
