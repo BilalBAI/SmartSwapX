@@ -8,6 +8,9 @@ contract ForwardSwap is Ownable {
     /* 
        A forward swap enables parties to exchange token flows 
        according to a predetermined schedule in the future.
+       Owner of this contract is the forward swap dealer/market maker
+       that helps to facilitate the process and thus entitiled a fee. 
+       If there is no active dealer involved, the dealer fee can be set to zero.
     */
     address public partyA; // party that holds token A and want to receive token B
     address public partyB; //  party that holds token B and want to receive token A
@@ -16,10 +19,10 @@ contract ForwardSwap is Ownable {
     uint256 public tokenANotional; // Token A amount to be transfered to the party B in each payment
     uint256 public tokenBNotional; // Token B amount to be transfered to the party A in each payment
 
-    uint256 public tokenAInitMargin; // recommand: 4 * Notional
-    uint256 public tokenBInitMargin; // recommand: 4 * Notional
-    uint256 public tokenAMaintenanceMargin; // recommand: 2 * Notional
-    uint256 public tokenBMaintenanceMargin; // recommand: 2 * Notional
+    uint256 public tokenAInitMargin; // recommand: 4 * (Notional + fee)
+    uint256 public tokenBInitMargin; // recommand: 4 * (Notional + fee)
+    uint256 public tokenAMaintenanceMargin; // recommand: 2 * (Notional + fee)
+    uint256 public tokenBMaintenanceMargin; // recommand: 2 * (Notional + fee)
     uint256 public marketMakerFeeBps; // Market maker/dealer fee in base points for each payment
 
     uint256 public paymentInterval; // in seconds
