@@ -229,14 +229,14 @@ contract ForwardSwap is Ownable {
             tokenBNotional +
             feeB;
 
-        collectFees(feeA, feeB);
-
         if (
             tokenA.balanceOf(address(this)) < liquidationLevelA ||
             tokenB.balanceOf(address(this)) < liquidationLevelB
         ) {
+            collectFees(feeA, feeB);
             liquidateSwap(liquidationLevelA, liquidationLevelB);
         } else {
+            collectFees(feeA, feeB);
             processPayment();
             paymentCount++;
         }
