@@ -14,10 +14,13 @@ contract ForwardSwap is Ownable {
     */
     address public partyA; // party that holds token A and want to receive token B
     address public partyB; //  party that holds token B and want to receive token A
+
     IERC20 public tokenA; // ERC-20 token address
     IERC20 public tokenB; // ERC-20 token address
     uint256 public tokenANotional; // Token A amount to be transfered to the party B in each payment
     uint256 public tokenBNotional; // Token B amount to be transfered to the party A in each payment
+    uint256 public paymentInterval; // in seconds
+    uint256 public totalDuration; // in seconds
 
     uint256 public tokenAInitMargin; // recommand: 4 * (Notional + fee)
     uint256 public tokenBInitMargin; // recommand: 4 * (Notional + fee)
@@ -25,16 +28,14 @@ contract ForwardSwap is Ownable {
     uint256 public tokenBMaintenanceMargin; // recommand: 2 * (Notional + fee)
     uint256 public marketMakerFeeBps; // Market maker/dealer fee in base points for each payment
 
-    uint256 public paymentInterval; // in seconds
-    uint256 public totalDuration; // in seconds
-
     uint256 public lastPaymentTime;
     uint256 public startTime;
     bool public swapStarted;
     bool public partyATerminationConsent;
     bool public partyBTerminationConsent;
 
-    event SwapSet(address indexed partyA, address indexed partyB);
+    event SwapSet();
+    event PartiesSet(address indexed partyA, address indexed partyB);
     event SwapMarginAndFeeSet(
         uint256 tokenAInitMargin,
         uint256 tokenBInitMargin,
@@ -59,8 +60,6 @@ contract ForwardSwap is Ownable {
     }
 
     function setSwap(
-        address _partyA,
-        address _partyB,
         address _tokenA,
         address _tokenB,
         uint256 _tokenANotional,
@@ -74,20 +73,10 @@ contract ForwardSwap is Ownable {
         refundBalance();
 
         require(
-            _partyA != address(0) && _partyB != address(0),
-            "Invalid party address"
-        );
-        require(
-            _tokenA != address(0) && _tokenB != address(0),
-            "Invalid token address"
-        );
-        require(
             _tokenANotional > 0 && _tokenBNotional > 0,
             "Notional amounts must be greater than zero"
         );
 
-        partyA = _partyA;
-        partyB = _partyB;
         tokenA = IERC20(_tokenA);
         tokenB = IERC20(_tokenB);
         tokenANotional = _tokenANotional;
@@ -99,7 +88,19 @@ contract ForwardSwap is Ownable {
         partyATerminationConsent = false;
         partyBTerminationConsent = false;
 
-        emit SwapSet(_partyA, _partyB);
+        emit SwapSet();
+    }
+
+    function setParties(address _partyA, address _partyB) external onlyOwner {
+        require(!swapStarted, "Cannot reset swap, the swap has started");
+
+        // refund balances to parties if any, before reseting the swap
+        refundBalance();
+
+        partyA = _partyA;
+        partyB = _partyB;
+
+        emit PartiesSet(_partyA, _partyB);
     }
 
     function setMarginFee(
