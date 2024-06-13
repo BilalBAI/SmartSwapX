@@ -23,7 +23,8 @@ contract ForwardSwap is Ownable {
     uint256 public tokenANotional; // Amount of token A to be transferred to party B in each payment
     uint256 public tokenBNotional; // Amount of token B to be transferred to party A in each payment
     uint256 public paymentInterval; // Payment interval in seconds
-    uint256 public totalDuration; // Total swap duration in seconds
+    uint256 public totalPaymentCount; // Total number of swap payments
+    // uint256 public totalDuration; // Total swap duration in seconds
 
     // Margin and fees
     uint256 public initMarginBps; // Initial Margin in base points of notional
@@ -31,6 +32,7 @@ contract ForwardSwap is Ownable {
     uint256 public marketMakerFeeBps; // Market maker/dealer fee in basis points for each payment
 
     // Swap state variables
+    uint256 public paymentCount; // the number of payments has been made
     uint256 public lastPaymentTime; // Last payment timestamp
     uint256 public startTime; // Swap start timestamp
     bool public swapStarted; // Flag indicating if the swap has started
@@ -67,7 +69,7 @@ contract ForwardSwap is Ownable {
         uint256 _tokenANotional,
         uint256 _tokenBNotional,
         uint256 _paymentInterval,
-        uint256 _totalDuration
+        uint256 _totalPaymentCount
     ) external onlyOwner {
         require(!swapStarted, "Cannot reset swap, the swap has started");
         refundBalance();
@@ -82,7 +84,7 @@ contract ForwardSwap is Ownable {
         tokenANotional = _tokenANotional;
         tokenBNotional = _tokenBNotional;
         paymentInterval = _paymentInterval;
-        totalDuration = _totalDuration;
+        totalPaymentCount = _totalPaymentCount;
 
         resetSwapState();
         emit SwapSet();
@@ -207,8 +209,8 @@ contract ForwardSwap is Ownable {
             "Payment interval has not passed"
         );
         require(
-            block.timestamp < startTime + totalDuration,
-            "Swap duration has ended"
+            paymentCount < totalPaymentCount,
+            "All payments have been made"
         );
         // Calculate Maintenance Margin
         uint256 tokenAMaintenanceMargin = (tokenANotional *
@@ -236,6 +238,7 @@ contract ForwardSwap is Ownable {
             liquidateSwap(liquidationLevelA, liquidationLevelB);
         } else {
             processPayment();
+            paymentCount++;
         }
     }
 
@@ -243,8 +246,8 @@ contract ForwardSwap is Ownable {
     function endSwap() external {
         require(swapStarted, "Swap has not started");
         require(
-            block.timestamp >= startTime + totalDuration,
-            "Swap duration has not ended"
+            paymentCount >= totalPaymentCount,
+            "Remaining payments need to be made"
         );
 
         refundBalance();
@@ -320,6 +323,7 @@ contract ForwardSwap is Ownable {
     // Helper function to reset swap state
     function resetSwapState() internal {
         swapStarted = false;
+        paymentCount = 0;
         partyATerminationConsent = false;
         partyBTerminationConsent = false;
     }
