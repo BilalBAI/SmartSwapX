@@ -238,7 +238,6 @@ contract ForwardSwap is Ownable {
         } else {
             collectFees(feeA, feeB);
             processPayment();
-            paymentCount++;
         }
     }
 
@@ -292,7 +291,7 @@ contract ForwardSwap is Ownable {
         }
     }
 
-    // Liquidate the swap if maintenance margin is breached
+    // Liquidate the swap if liquidation level is breached
     function liquidateSwap(
         uint256 liquidationLevelA,
         uint256 liquidationLevelB
@@ -339,6 +338,7 @@ contract ForwardSwap is Ownable {
         tokenA.transfer(partyB, tokenANotional);
         tokenB.transfer(partyA, tokenBNotional);
         lastPaymentTime = block.timestamp;
+        paymentCount++;
         emit PaymentMade(tokenANotional, tokenBNotional, lastPaymentTime);
     }
 
