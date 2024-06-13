@@ -1,11 +1,11 @@
 import { ethers } from 'hardhat';
 
 async function main() {
-    const ForwardSwap = await ethers.deployContract('ForwardSwap');
+    const ForwardSwapV1 = await ethers.deployContract('ForwardSwapV1');
 
-    await ForwardSwap.waitForDeployment();
+    await ForwardSwapV1.waitForDeployment();
 
-    console.log('ForwardSwap Contract Deployed at ' + ForwardSwap.target);
+    console.log('ForwardSwapV1 Contract Deployed at ' + ForwardSwapV1.target);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract ForwardSwap is Ownable {
+contract ForwardSwapV1 is Ownable {
     /*
         A forward swap enables parties to exchange token flows 
         according to a predetermined schedule in the future.
@@ -311,7 +311,7 @@ contract ForwardSwap is Ownable {
         }
 
         if (balanceB < liquidationLevelB) {
-            tokenB.transfer(partyA, balanceB / 2);
+            tokenB.transfer(partyA, balanceB);
             emit PartyBLiquidated(balanceB);
         }
 
