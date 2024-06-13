@@ -13,13 +13,13 @@ contract ForwardSwap is Ownable {
         If there is no active dealer involved, the dealer fee can be set to zero.
     */
 
-    // Swap parties and tokens
+    // Swap parties
     address public partyA; // Party holding token A and wanting to receive token B
     address public partyB; // Party holding token B and wanting to receive token A
-    IERC20 public tokenA; // ERC-20 token A address
-    IERC20 public tokenB; // ERC-20 token B address
 
     // Swap details
+    IERC20 public tokenA; // ERC-20 token A address
+    IERC20 public tokenB; // ERC-20 token B address
     uint256 public tokenANotional; // Amount of token A to be transferred to party B in each payment
     uint256 public tokenBNotional; // Amount of token B to be transferred to party A in each payment
     uint256 public paymentInterval; // Payment interval in seconds
