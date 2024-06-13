@@ -26,10 +26,8 @@ contract ForwardSwap is Ownable {
     uint256 public totalDuration; // Total swap duration in seconds
 
     // Margin and fees
-    uint256 public tokenAInitMargin; // Recommended: 4 * (Notional + fee)
-    uint256 public tokenBInitMargin; // Recommended: 4 * (Notional + fee)
-    uint256 public tokenAMaintenanceMargin; // Recommended: 2 * (Notional + fee)
-    uint256 public tokenBMaintenanceMargin; // Recommended: 2 * (Notional + fee)
+    uint256 public initMarginBps; // Initial Margin in base points of notional
+    uint256 public maintenanceMarginBps; // Maintenance Margin in base points of notional
     uint256 public marketMakerFeeBps; // Market maker/dealer fee in basis points for each payment
 
     // Swap state variables
@@ -43,10 +41,8 @@ contract ForwardSwap is Ownable {
     event SwapSet();
     event PartiesSet(address indexed partyA, address indexed partyB);
     event SwapMarginAndFeeSet(
-        uint256 tokenAInitMargin,
-        uint256 tokenBInitMargin,
-        uint256 tokenAMaintenanceMargin,
-        uint256 tokenBMaintenanceMargin,
+        uint256 initMarginBps,
+        uint256 MaintenanceMarginBps,
         uint256 marketMakerFeeBps
     );
     event SwapStarted(uint256 startTime);
@@ -109,32 +105,29 @@ contract ForwardSwap is Ownable {
 
     // Set margin and fee parameters
     function setMarginFee(
-        uint256 _tokenAInitMargin,
-        uint256 _tokenBInitMargin,
-        uint256 _tokenAMaintenanceMargin,
-        uint256 _tokenBMaintenanceMargin,
+        uint256 _initMarginBps,
+        uint256 _maintenanceMarginBps,
         uint256 _marketMakerFeeBps
     ) external onlyOwner {
         require(!swapStarted, "Cannot reset swap, the swap has started");
         refundBalance();
 
-        tokenAInitMargin = _tokenAInitMargin;
-        tokenBInitMargin = _tokenBInitMargin;
-        tokenAMaintenanceMargin = _tokenAMaintenanceMargin;
-        tokenBMaintenanceMargin = _tokenBMaintenanceMargin;
+        initMarginBps = _initMarginBps;
+        maintenanceMarginBps = _maintenanceMarginBps;
         marketMakerFeeBps = _marketMakerFeeBps;
 
         emit SwapMarginAndFeeSet(
-            tokenAInitMargin,
-            tokenBInitMargin,
-            tokenAMaintenanceMargin,
-            tokenBMaintenanceMargin,
+            initMarginBps,
+            maintenanceMarginBps,
             marketMakerFeeBps
         );
     }
 
     // Start the swap
     function startSwap() external onlyOwner {
+        uint256 tokenAInitMargin = (tokenANotional * initMarginBps) / 10000;
+        uint256 tokenBInitMargin = (tokenBNotional * initMarginBps) / 10000;
+
         require(
             tokenA.balanceOf(address(this)) >= tokenAInitMargin &&
                 tokenB.balanceOf(address(this)) >= tokenBInitMargin,
@@ -220,6 +213,11 @@ contract ForwardSwap is Ownable {
 
         collectFees();
 
+        uint256 tokenAMaintenanceMargin = (tokenANotional *
+            maintenanceMarginBps) / 10000;
+        uint256 tokenBMaintenanceMargin = (tokenBNotional *
+            maintenanceMarginBps) / 10000;
+
         if (
             tokenA.balanceOf(address(this)) < tokenAMaintenanceMargin ||
             tokenB.balanceOf(address(this)) < tokenBMaintenanceMargin
@@ -282,6 +280,11 @@ contract ForwardSwap is Ownable {
 
     // Liquidate the swap if maintenance margin is breached
     function liquidateSwap() internal {
+        uint256 tokenAMaintenanceMargin = (tokenANotional *
+            maintenanceMarginBps) / 10000;
+        uint256 tokenBMaintenanceMargin = (tokenBNotional *
+            maintenanceMarginBps) / 10000;
+
         require(
             tokenA.balanceOf(address(this)) < tokenAMaintenanceMargin ||
                 tokenB.balanceOf(address(this)) < tokenBMaintenanceMargin,
