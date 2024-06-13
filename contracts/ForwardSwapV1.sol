@@ -210,19 +210,30 @@ contract ForwardSwap is Ownable {
             block.timestamp < startTime + totalDuration,
             "Swap duration has ended"
         );
-
-        collectFees();
-
+        // Calculate Maintenance Margin
         uint256 tokenAMaintenanceMargin = (tokenANotional *
             maintenanceMarginBps) / 10000;
         uint256 tokenBMaintenanceMargin = (tokenBNotional *
             maintenanceMarginBps) / 10000;
+        // Calculate Dealer Fee
+        uint256 feeA = (tokenANotional * marketMakerFeeBps) / 10000;
+        uint256 feeB = (tokenBNotional * marketMakerFeeBps) / 10000;
+        // Calculate liquidationLevel: Need to have sufficient balance
+        // to cover MaintenanceMargin + fee + Notional for this payment
+        uint256 liquidationLevelA = tokenAMaintenanceMargin +
+            tokenANotional +
+            feeA;
+        uint256 liquidationLevelB = tokenBMaintenanceMargin +
+            tokenBNotional +
+            feeB;
+
+        collectFees(feeA, feeB);
 
         if (
-            tokenA.balanceOf(address(this)) < tokenAMaintenanceMargin ||
-            tokenB.balanceOf(address(this)) < tokenBMaintenanceMargin
+            tokenA.balanceOf(address(this)) < liquidationLevelA ||
+            tokenB.balanceOf(address(this)) < liquidationLevelB
         ) {
-            liquidateSwap();
+            liquidateSwap(liquidationLevelA, liquidationLevelB);
         } else {
             processPayment();
         }
@@ -279,27 +290,25 @@ contract ForwardSwap is Ownable {
     }
 
     // Liquidate the swap if maintenance margin is breached
-    function liquidateSwap() internal {
-        uint256 tokenAMaintenanceMargin = (tokenANotional *
-            maintenanceMarginBps) / 10000;
-        uint256 tokenBMaintenanceMargin = (tokenBNotional *
-            maintenanceMarginBps) / 10000;
-
+    function liquidateSwap(
+        uint256 liquidationLevelA,
+        uint256 liquidationLevelB
+    ) internal {
         require(
-            tokenA.balanceOf(address(this)) < tokenAMaintenanceMargin ||
-                tokenB.balanceOf(address(this)) < tokenBMaintenanceMargin,
-            "None of the parties has reached the liquidation level"
+            tokenA.balanceOf(address(this)) < liquidationLevelA ||
+                tokenB.balanceOf(address(this)) < liquidationLevelB,
+            "None of the parties have reached the liquidation level"
         );
 
         uint256 balanceA = tokenA.balanceOf(address(this));
         uint256 balanceB = tokenB.balanceOf(address(this));
 
-        if (balanceA < tokenAMaintenanceMargin) {
+        if (balanceA < liquidationLevelA) {
             tokenA.transfer(partyB, balanceA);
             emit PartyALiquidated(balanceA);
         }
 
-        if (balanceB < tokenBMaintenanceMargin) {
+        if (balanceB < liquidationLevelB) {
             tokenB.transfer(partyA, balanceB / 2);
             emit PartyBLiquidated(balanceB);
         }
@@ -330,10 +339,7 @@ contract ForwardSwap is Ownable {
     }
 
     // Collect fees for swap dealer
-    function collectFees() internal {
-        uint256 feeA = (tokenANotional * marketMakerFeeBps) / 10000;
-        uint256 feeB = (tokenBNotional * marketMakerFeeBps) / 10000;
-
+    function collectFees(uint256 feeA, uint256 feeB) internal {
         tokenA.transfer(owner(), feeA);
         tokenB.transfer(owner(), feeB);
     }
