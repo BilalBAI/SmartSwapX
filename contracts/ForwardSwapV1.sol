@@ -66,6 +66,24 @@ contract ForwardSwapV1 is Ownable {
     // Constructor to set the owner
     constructor() Ownable(msg.sender) {}
 
+    // Restrictions
+    modifier onlyPartyA() {
+        require(msg.sender == partyA, "Cannot process: Only Party A");
+        _;
+    }
+    modifier onlyPartyB() {
+        require(msg.sender == partyB, "Cannot process: Only Party B");
+        _;
+    }
+    modifier onlyNotStarted() {
+        require(!swapStarted, "Cannot process: the swap has started");
+        _;
+    }
+    modifier onlyStarted() {
+        require(swapStarted, "Cannot process: Swap has not started");
+        _;
+    }
+
     // Set swap parameters
     function setSwap(
         address _tokenA,
@@ -74,8 +92,7 @@ contract ForwardSwapV1 is Ownable {
         uint256 _tokenBNotional,
         uint256 _paymentInterval,
         uint256 _totalPaymentCount
-    ) external onlyOwner {
-        require(!swapStarted, "Cannot reset swap, the swap has started");
+    ) external onlyOwner onlyNotStarted {
         refundBalance();
 
         require(
@@ -95,8 +112,10 @@ contract ForwardSwapV1 is Ownable {
     }
 
     // Set swap parties
-    function setParties(address _partyA, address _partyB) external onlyOwner {
-        require(!swapStarted, "Cannot reset swap, the swap has started");
+    function setParties(
+        address _partyA,
+        address _partyB
+    ) external onlyOwner onlyNotStarted {
         require(
             _partyA != address(0) && _partyB != address(0),
             "Party addresses must be non-zero"
@@ -116,8 +135,7 @@ contract ForwardSwapV1 is Ownable {
         uint256 _tokenAMaintenanceMargin,
         uint256 _tokenBMaintenanceMargin,
         uint256 _marketMakerFeeBps
-    ) external onlyOwner {
-        require(!swapStarted, "Cannot reset swap, the swap has started");
+    ) external onlyOwner onlyNotStarted {
         refundBalance();
 
         tokenAInitMargin = _tokenAInitMargin;
@@ -152,11 +170,7 @@ contract ForwardSwapV1 is Ownable {
     }
 
     // Deposit margin for Token A
-    function depositMarginTokenA(uint256 depositValue) external {
-        require(
-            msg.sender == partyA,
-            "Only Party A can deposit Token A margin"
-        );
+    function depositMarginTokenA(uint256 depositValue) external onlyPartyA {
         require(
             tokenA.transferFrom(msg.sender, address(this), depositValue),
             "ERC20 margin transfer failed"
@@ -166,12 +180,7 @@ contract ForwardSwapV1 is Ownable {
     }
 
     // Withdraw margin for Token A
-    function withdrawMarginTokenA() external {
-        require(
-            msg.sender == partyA,
-            "Only Party A can withdraw Token A margin"
-        );
-        require(!swapStarted, "Cannot withdraw: Swap has started");
+    function withdrawMarginTokenA() external onlyPartyA onlyNotStarted {
         require(
             tokenA.transfer(msg.sender, tokenA.balanceOf(address(this))),
             "ERC20 margin transfer failed"
@@ -181,11 +190,7 @@ contract ForwardSwapV1 is Ownable {
     }
 
     // Deposit margin for Token B
-    function depositMarginTokenB(uint256 depositValue) external {
-        require(
-            msg.sender == partyB,
-            "Only Party B can deposit Token B margin"
-        );
+    function depositMarginTokenB(uint256 depositValue) external onlyPartyB {
         require(
             tokenB.transferFrom(msg.sender, address(this), depositValue),
             "ERC20 margin transfer failed"
@@ -195,12 +200,7 @@ contract ForwardSwapV1 is Ownable {
     }
 
     // Withdraw margin for Token B
-    function withdrawMarginTokenB() external {
-        require(
-            msg.sender == partyB,
-            "Only Party B can withdraw Token B margin"
-        );
-        require(!swapStarted, "Cannot withdraw: Swap has started");
+    function withdrawMarginTokenB() external onlyPartyB onlyNotStarted {
         require(
             tokenB.transfer(msg.sender, tokenB.balanceOf(address(this))),
             "ERC20 margin transfer failed"
@@ -210,8 +210,7 @@ contract ForwardSwapV1 is Ownable {
     }
 
     // Make a scheduled payment
-    function makePayment() external {
-        require(swapStarted, "Swap has not started");
+    function makePayment() external onlyStarted {
         require(
             block.timestamp >= lastPaymentTime + paymentInterval,
             "Payment interval has not passed"
@@ -234,8 +233,7 @@ contract ForwardSwapV1 is Ownable {
     }
 
     // End the swap after the total duration has passed
-    function endSwap() external {
-        require(swapStarted, "Swap has not started");
+    function endSwap() external onlyStarted {
         require(
             paymentCount >= totalPaymentCount,
             "Remaining payments need to be made"
@@ -248,12 +246,11 @@ contract ForwardSwapV1 is Ownable {
     }
 
     // Terminate the swap by mutual consent of both parties
-    function terminateSwap() external {
+    function terminateSwap() external onlyStarted {
         require(
             msg.sender == partyA || msg.sender == partyB,
             "Only parties involved can initiate termination"
         );
-        require(swapStarted, "Swap has not started");
 
         if (msg.sender == partyA) {
             partyATerminationConsent = true;
