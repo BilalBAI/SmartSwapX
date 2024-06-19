@@ -25,11 +25,12 @@ contract MarginTrading {
     ILendingPool[] public lendingPools;
     IERC20 public baseToken;
     address public trader;
+    uint public marginReqBps;
 
     struct Positions {
         address[] allTokens;
-        mapping(address => uint256) borrowed;
-        mapping(address => uint256) holdings;
+        mapping(address => uint256) debts;
+        mapping(address => uint256) assets;
     }
 
     Positions public positions;
@@ -41,8 +42,8 @@ contract MarginTrading {
 
     event CollateralDeposited(address indexed user, uint256 amount);
     event CollateralWithdrawn(address indexed user, uint256 amount);
-    event Borrowed(address indexed user, address indexed asset, uint256 amount);
-    event Repaid(address indexed user, address indexed asset, uint256 amount);
+    event Borrowed(address indexed user, address indexed token, uint256 amount);
+    event Repaid(address indexed user, address indexed token, uint256 amount);
     event TradeExecuted(
         address indexed user,
         address indexed inputAsset,
@@ -63,57 +64,64 @@ contract MarginTrading {
         trader = _trader;
     }
 
-    function depositCollateral(uint256 amount) external onlyTrader {
-        baseToken.transferFrom(msg.sender, address(this), amount);
-        positions.holdings[address(baseToken)] += amount;
-        emit CollateralDeposited(msg.sender, amount);
+    function deposit(uint256 amount) external onlyTrader {
+        require(
+            baseToken.transferFrom(msg.sender, address(this), amount),
+            "Deposit failed"
+        );
+        positions.assets[address(baseToken)] += amount;
+        emit Deposited(msg.sender, amount);
     }
 
-    function withdrawCollateral(uint256 amount) external onlyTrader {
-        require(
-            positions.holdings[address(baseToken)] >= amount,
-            "Insufficient collateral"
-        );
+    function withdraw(uint256 amount) external onlyTrader {
         require(getDebtValue() == 0, "Outstanding debt must be repaid first");
-
-        positions.holdings[address(baseToken)] -= amount;
-        baseToken.transfer(trader, amount);
-        emit CollateralWithdrawn(trader, amount);
-    }
-
-    function borrowAsset(address asset, uint256 amount) external onlyTrader {
-        uint256 collateralValue = getCollateralValue();
-        uint256 maxBorrow = collateralValue * 0.75; // 75% Loan-to-Value ratio
         require(
-            amount + getDebtValue() <= maxBorrow,
-            "Borrow amount exceeds collateral value"
+            positions.assets[address(baseToken)] >= amount,
+            "Insufficient balance"
         );
-
-        lendingPool.borrow(asset, amount, 1, 0, address(this));
-        positions.borrowed[asset] += amount;
-        emit Borrowed(trader, asset, amount);
+        positions.assets[address(baseToken)] -= amount;
+        baseToken.transfer(trader, amount);
+        emit Withdrawn(trader, amount);
     }
 
-    function repayAsset(address asset, uint256 amount) external onlyTrader {
-        IERC20(asset).transferFrom(msg.sender, address(this), amount);
-        IERC20(asset).approve(address(lendingPool), amount);
-        lendingPool.repay(asset, amount, 1, address(this));
-        positions.borrowed[asset] -= amount;
-        emit Repaid(trader, asset, amount);
+    function borrowToken(address token, uint256 amount) external onlyTrader {
+        borrowValue = getBaseValue(token, amount);
+        uint256 MarginRatioBpsAdj = calculateMarginRatioBps(
+            borrowValue,
+            borrowValue
+        );
+        require(
+            MarginRatioBpsAdj <= marginReqBps,
+            "Borrow amount will exceeds required margin ratio"
+        );
+        lendingPool.borrow(token, amount, 1, 0, address(this));
+        positions.debts[token] += amount;
+        emit Borrowed(trader, token, amount);
     }
 
-    function executeTrade(
-        address inputAsset,
-        address outputAsset,
+    function repayToken(address token, uint256 amount) external onlyTrader {
+        IERC20(token).transferFrom(msg.sender, address(this), amount);
+        IERC20(token).approve(address(lendingPool), amount);
+        lendingPool.repay(token, amount, 1, address(this));
+        positions.debts[token] -= amount;
+        emit Repaid(trader, token, amount);
+    }
+
+    function trade(
+        address inputToken,
+        address outputToken,
         uint256 amountIn,
         uint256 amountOutMin
     ) external onlyTrader {
-        IERC20(inputAsset).transferFrom(msg.sender, address(this), amountIn);
-        IERC20(inputAsset).approve(address(uniswapRouter), amountIn);
-
+        // IERC20(inputToken).transferFrom(msg.sender, address(this), amountIn);
+        // IERC20(inputToken).approve(address(uniswapRouter), amountIn);
+        require(
+            IERC20(inputToken).balanceOf(address(this)) >= amountIn,
+            "Insufficient balance"
+        );
         address[] memory path = new address[](2);
-        path[0] = inputAsset;
-        path[1] = outputAsset;
+        path[0] = inputToken;
+        path[1] = outputToken;
 
         uint[] memory amounts = uniswapRouter.swapExactTokensForTokens(
             amountIn,
@@ -122,26 +130,22 @@ contract MarginTrading {
             address(this), // Lock tokens in the contract
             block.timestamp
         );
-
-        positions.holdings[outputAsset] += amounts[1];
+        positions.assets[inputToken] -= amounts[0];
+        positions.assets[outputToken] += amounts[1];
         emit TradeExecuted(
             trader,
-            inputAsset,
-            outputAsset,
+            inputToken,
+            outputToken,
             amountIn,
             amounts[1]
         );
     }
 
-    function closePosition(address asset, uint256 amount) external onlyTrader {
-        require(positions.holdings[asset] >= amount, "Insufficient holdings");
+    function closePosition(address token, uint256 amount) external onlyTrader {
+        require(positions.assets[token] >= amount, "Insufficient assets");
 
-        positions.holdings[asset] -= amount;
-        IERC20(asset).transfer(trader, amount);
-    }
-
-    function getCollateralValue() internal view returns (uint256) {
-        return positions.collateral;
+        positions.assets[token] -= amount;
+        IERC20(token).transfer(trader, amount);
     }
 
     function getBaseValue(
@@ -160,27 +164,39 @@ contract MarginTrading {
     }
 
     function calculateDebtValue() internal view returns (uint256) {
-        uint256 totalDebt = 0;
+        uint256 totalDebtValue = 0;
         // Iterate through all borrowed assets to calculate the total debt
         for (uint i = 0; i < positions.allTokens.length; i++) {
             address token = ositions.allTokens[i];
-            uint256 debtAmount = positions.borrowed[token];
+            uint256 debtAmount = positions.debts[token];
             if (debtAmount > 0) {
-                totalDebt += getBaseValue(token, debtAmount);
+                totalDebtValue += getBaseValue(token, debtAmount);
             }
         }
-        return totalDebt;
+        return totalDebtValue;
     }
 
     function calculateAssetValue() external view returns (uint256) {
-        uint256 totalHoldingsValue = 0;
+        uint256 totalAssetValue = 0;
         for (uint i = 0; i < positions.allTokens.length; i++) {
             address token = ositions.allTokens[i];
-            uint256 holdingAmount = positions.holdings[token];
+            uint256 holdingAmount = positions.assets[token];
             if (holdingAmount > 0) {
-                totalHoldingsValue += getBaseValue(token, holdingAmount);
+                totalAssetValue += getBaseValue(token, holdingAmount);
             }
         }
-        return totalHoldingsValue;
+        return totalAssetValue;
+    }
+
+    function calculateMarginRatioBps(
+        uint assetAdj,
+        uint debtAdj
+    ) external view returns (uint256) {
+        uint totalAssetValue = calculateAssetValue();
+        uint totalDebtValue = calculateDebtValue();
+        marginRatioBps =
+            ((totalAssetValue + assetAdj) * 10000) /
+            (totalDebtValue + assetAdj);
+        return marginRatioBps;
     }
 }
