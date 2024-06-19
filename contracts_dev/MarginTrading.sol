@@ -84,7 +84,7 @@ contract MarginTrading {
         emit Withdrawn(trader, amount);
     }
 
-    function borrowToken(address token, uint256 amount) external onlyTrader {
+    function borrow(address token, uint256 amount) external onlyTrader {
         borrowValue = getBaseValue(token, amount);
         uint256 MarginRatioBpsAdj = calculateMarginRatioBps(
             borrowValue,
@@ -99,9 +99,9 @@ contract MarginTrading {
         emit Borrowed(trader, token, amount);
     }
 
-    function repayToken(address token, uint256 amount) external onlyTrader {
-        IERC20(token).transferFrom(msg.sender, address(this), amount);
-        IERC20(token).approve(address(lendingPool), amount);
+    function repay(address token, uint256 amount) external onlyTrader {
+        // IERC20(token).transferFrom(msg.sender, address(this), amount);
+        // IERC20(token).approve(address(lendingPool), amount);
         lendingPool.repay(token, amount, 1, address(this));
         positions.debts[token] -= amount;
         emit Repaid(trader, token, amount);
@@ -167,7 +167,7 @@ contract MarginTrading {
         uint256 totalDebtValue = 0;
         // Iterate through all borrowed assets to calculate the total debt
         for (uint i = 0; i < positions.allTokens.length; i++) {
-            address token = ositions.allTokens[i];
+            address token = positions.allTokens[i];
             uint256 debtAmount = positions.debts[token];
             if (debtAmount > 0) {
                 totalDebtValue += getBaseValue(token, debtAmount);
@@ -198,5 +198,13 @@ contract MarginTrading {
             ((totalAssetValue + assetAdj) * 10000) /
             (totalDebtValue + assetAdj);
         return marginRatioBps;
+    }
+
+    function liquidate() external {
+        marginRatioBps = calculateMarginRatioBps(0, 0);
+        require(
+            marginRatioBps < marginReqBps,
+            "Hasn't reached liquidation level"
+        );
     }
 }
