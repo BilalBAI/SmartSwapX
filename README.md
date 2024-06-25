@@ -9,7 +9,7 @@ SmartSwapX is a novel implementation of a customizable forward swap using smart 
 
 <!-- https://docs.base.org/tutorials/deploy-with-hardhat -->
 
-### Install
+### Install and Test Locally
 #### Install Dependencies
 ```bash
 npm install --save-dev hardhat
