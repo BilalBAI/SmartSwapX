@@ -2,10 +2,10 @@
 SmartSwapX is a novel implementation of a customizable forward swap using smart contracts.
 
 ### Introduction
-[Smart Swap Introduction](SmartSwapXIntro)
+[Smart Swap Introduction](SmartSwapXIntro.md)
 
 
-https://docs.base.org/tutorials/deploy-with-hardhat
+<!-- https://docs.base.org/tutorials/deploy-with-hardhat -->
 
 ### Install Dependencies
 ```bash
