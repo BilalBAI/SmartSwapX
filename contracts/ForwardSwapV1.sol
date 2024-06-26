@@ -64,7 +64,7 @@ contract ForwardSwapV1 is Ownable {
     event PartyBLiquidated(uint256 amount);
 
     // Constructor to set the owner
-    constructor() Ownable(msg.sender) {}
+    constructor(address _owner) Ownable(_owner) {}
 
     // Restrictions
     modifier onlyPartyA() {

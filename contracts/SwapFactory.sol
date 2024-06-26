@@ -18,10 +18,7 @@ contract SwapFactory is Ownable {
     // Function to create a new ForwardSwapV1 contract
     function createSwap() external onlyOwner returns (address) {
         // Create a new ForwardSwapV1 contract
-        ForwardSwapV1 newSwap = new ForwardSwapV1();
-
-        // Transfer ownership of the new swap contract to the factory owner
-        newSwap.transferOwnership(msg.sender);
+        ForwardSwapV1 newSwap = new ForwardSwapV1(msg.sender);
 
         // Store the address of the new swap contract
         allSwaps.push(address(newSwap));
