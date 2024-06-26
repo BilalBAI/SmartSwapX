@@ -1,7 +1,11 @@
 import { ethers } from 'hardhat';
 
 async function main() {
-    const ForwardSwapV1 = await ethers.deployContract('ForwardSwapV1');
+    // Get the signer (deployer) address
+    const [deployer] = await ethers.getSigners();
+
+    // Deploy the ForwardSwapV1 contract with deployer.address as the constructor parameter
+    const ForwardSwapV1 = await ethers.deployContract('ForwardSwapV1', [deployer.address]);
 
     await ForwardSwapV1.waitForDeployment();
 
