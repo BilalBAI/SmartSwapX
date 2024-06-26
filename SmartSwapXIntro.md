@@ -1,7 +1,7 @@
 # SmartSwapX
 
 ## Introduction
-The ForwardSwapV1 smart contract is an innovative financial instrument that facilitates the exchange of ERC-20 tokens between two parties according to a predetermined schedule. This contract is designed for parties looking to hedge, speculate, or manage their token holdings with future certainty, offering a structured and automated way to conduct forward swaps in the Ethereum ecosystem. The contract incorporates multiple features to ensure secure, reliable, and efficient execution of forward swaps, underpinned by the security and flexibility of the Ethereum blockchain and ERC-20 token standard.
+The ForwardSwapV1 smart contract is an innovative financial instrument that facilitates the exchange of ERC-20 tokens between two parties according to a predetermined schedule. This contract is designed for parties looking to hedge, speculate, or manage their token holdings with future certainty, offering a structured and automated way to conduct forward swaps in the Ethereum ecosystem. The contract incorporates multiple features to ensure secure, reliable, and efficient execution of forward swaps, underpinned by the security and flexibility of the Ethereum blockchain and ERC-20 token standard. The design philosophy is to keep the smart contract as succinct as possible, focusing solely on its core functionalities. The rest will be driven by robust incentives and market forces off-chain. 
 
 ## Key Features
 
@@ -48,10 +48,17 @@ The ForwardSwapV1 smart contract is an innovative financial instrument that faci
 2. **Liquidity Management**:
    - Entities managing large token portfolios can use forward swaps to ensure liquidity and manage cash flows more predictably.
 
-3. **Decentralized Finance (DeFi) Applications**:
+3. **OTC Market**:
+   - Create a robust and standardized over-the-counter forward swap market and bring more users and traders onchain.
+
+4. **Decentralized Finance (DeFi) Applications**:
    - ForwardSwapV1 can be integrated into DeFi platforms to offer users additional financial instruments, enhancing the ecosystem's sophistication and functionality.
 
-## Conclusion
-ForwardSwapV1 represents a significant advancement in decentralized finance by bringing traditional financial instruments into the blockchain realm. With its secure, automated, and transparent design, it offers a powerful tool for managing token exchanges, mitigating risks, and leveraging market opportunities. This contract is poised to become an essential component of the DeFi landscape, providing value to both token holders and market makers.
+## Future Development
 
-For more detailed information and to get started with ForwardSwapV1, please visit our [GitHub repository](https://github.com/BilalBAI/SmartSwapX).
+1. **Add a Swap Factory to create and manage multiple instances of swaps**
+2. **Implement an Interest Rate Swap**
+3. **Implement a Credit Default Swap**
+
+
+For more detailed information/corporation and to get started with ForwardSwapV1, please visit our [GitHub repository](https://github.com/BilalBAI/SmartSwapX).
